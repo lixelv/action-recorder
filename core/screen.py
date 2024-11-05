@@ -6,62 +6,69 @@ import time
 import signal
 import sys
 
-# Параметры записи
-def record(filename, fps, cursor_size=5):
+def record(filename, fps, monitor, cursor_size=5):
 
-    # Получаем размеры экрана
+    # Get screen dimensions and monitor position
     with mss.mss() as sct:
-        monitor = sct.monitors[1]  # Первый монитор (если их несколько)
+        monitor = sct.monitors[monitor]
+        monitor_left = monitor['left']
+        monitor_top = monitor['top']
         screen_width = monitor["width"]
         screen_height = monitor["height"]
 
-    # Настраиваем видеокодек и создаём объект записи
-    fourcc = cv2.VideoWriter_fourcc(*"XVID")  # Используем кодек XVID
+        # Print monitor position and size for debugging
+        print(f"Monitor position: left={monitor_left}, top={monitor_top}")
+        print(f"Screen size: {screen_width}x{screen_height}")
+
+    # Set up video codec and create video writer
+    fourcc = cv2.VideoWriter_fourcc(*"XVID")  # Use XVID codec
     out = cv2.VideoWriter(filename, fourcc, fps, (screen_width, screen_height))
 
     def signal_handler(sig, frame):
-        """Обработчик сигнала для корректного завершения записи."""
-        print("\nЗавершение записи...")
+        """Signal handler for proper termination."""
+        print("\nEnding recording...")
         out.release()
         cv2.destroyAllWindows()
         sys.exit(0)
 
-    # Назначаем обработчик для сигнала прерывания (Ctrl+C)
+    # Assign signal handler for SIGINT (Ctrl+C)
     signal.signal(signal.SIGINT, signal_handler)
 
-    print("Начало записи экрана. Нажмите Ctrl+C для завершения.")
+    print("Starting screen recording. Press Ctrl+C to stop.")
 
-    # Основной цикл записи
+    # Main recording loop
     with mss.mss() as sct:
         try:
             while True:
                 start_time = time.time()
 
-                # Захватываем экран
+                # Capture screen
                 img = sct.grab(monitor)
                 frame = np.array(img)
                 frame = cv2.cvtColor(frame, cv2.COLOR_BGRA2BGR)
 
-                # Получаем позицию курсора
+                # Get cursor position and adjust for monitor offset
                 cursor_x, cursor_y = pyautogui.position()
+                cursor_x -= monitor_left
+                cursor_y -= monitor_top
 
-                # Рисуем курсор на кадре
+                # Draw cursor on frame
                 cv2.circle(frame, (cursor_x, cursor_y), cursor_size, (0, 0, 255), -1)
 
-                # Записываем кадр в видеофайл
+                # Write frame to video file
                 out.write(frame)
 
-                # Рассчитываем время обработки кадра и корректируем задержку
+                # Calculate frame processing time and adjust delay
                 elapsed_time = time.time() - start_time
                 delay = max(1.0 / fps - elapsed_time, 0)
                 time.sleep(delay)
         except Exception as e:
-            print(f"Произошла ошибка: {e}")
+            print(f"An error occurred: {e}")
         finally:
-            # Освобождаем ресурсы
+            # Release resources
             out.release()
             cv2.destroyAllWindows()
-            print(f"Запись экрана сохранена в файл '{filename}'")
+            print(f"Screen recording saved to file '{filename}'")
 
 if __name__ == "__main__":
     record("output.avi", 10)

@@ -1,5 +1,6 @@
 {
     "source": "C:/Users/Simeo/Downloads",
     "target": "C:/Users/Simeo/Desktop",
+    "monitor": 1,
     "fps": 10
 }

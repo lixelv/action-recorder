@@ -11,17 +11,23 @@ with open('config.json', 'r', encoding='utf-8') as f:
 
 source = data["source"]
 target = data.get("target", getcwd())
+exclude = data.get("exclude", [])
+exclude += [target]
 fps = data.get("fps", 10)
+monitor = data.get("monitor", 1)
 video_output = target + "/output.avi"
 
-@observe(source or getcwd())
+@observe(source)
 def on_change(path):
+    for ex in exclude:
+        if ex in path:
+            return
+        
     print(path)
     
     try:
         while not is_file_downloaded(path, wait_time=1):
-            pass
-        print("fuck")
+            print(path, "not downloaded yet")
             
         copy2(path, target)
     except Exception as e:
@@ -30,4 +36,4 @@ def on_change(path):
 if __name__ == '__main__':
     t = Thread(target=on_change)
     t.start()
-    record(video_output, fps)
+    record(video_output, fps, monitor)

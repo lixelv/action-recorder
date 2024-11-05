@@ -53,7 +53,7 @@ def is_file_downloaded(file_path, wait_time=5):
     :return: True, если файл полностью скачан, False в противном случае.
     """
     if not os.path.exists(file_path):
-        return False
+        return True
 
     initial_size = os.path.getsize(file_path)
     initial_mtime = os.path.getmtime(file_path)
